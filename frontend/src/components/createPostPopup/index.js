@@ -9,6 +9,8 @@ import { createPost } from "../../functions/post";
 import PulseLoader from "react-spinners/PulseLoader";
 import { useDispatch } from "react-redux";
 import PostError from "./PostError";
+import dataURItoBlob from "../../helpers/dataURItoBlob";
+import { uplaodImages } from "../../functions/uplaodImages";
 export default function CreatePostPopup({ user, setVisible }) {
   const dispatch = useDispatch();
   const popup = useRef(null);
@@ -40,6 +42,43 @@ export default function CreatePostPopup({ user, setVisible }) {
       } else {
         setError(response);
       }
+    } else if (images && images.length) {
+      setLoading(true);
+      const postImages = images.map((img) => {
+        return dataURItoBlob(img);
+      });
+      const path = `${user.username}/post Images`;
+      let formData = new FormData();
+      formData.append("path", path);
+      postImages.forEach((image) => {
+        formData.append("file", image);
+      });
+      const response = await uplaodImages(formData, path, user.token);
+      await createPost(null, null, text, response, user.id, user.token);
+      setLoading(false);
+      setText("");
+      setImages("");
+      setVisible(false);
+    } else if (text) {
+      setLoading(true);
+      const response = await createPost(
+        null,
+        null,
+        text,
+        null,
+        user.id,
+        user.token
+      );
+      setLoading(false);
+      if (response === "ok") {
+        setBackground("");
+        setText("");
+        setVisible(false);
+      } else {
+        setError(response);
+      }
+    } else {
+      console.log("nothing");
     }
   };
   return (
